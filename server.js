@@ -12,9 +12,21 @@ var admin = {
    "isAvailable": false
 }
 
-var obj = JSON.parse(fs.readFileSync('pss.json', 'utf8'));
+// ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
+// Call object
+function call(cID, rep, cust, tStart) {
+   this.callID = cID;
+   this.repID = rep;
+   this.custID = cust;
+   this.tStart = tStart;
+   this.duration = 0;
+}
+// ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
 
-console.log(admin);
+var passes = JSON.parse(fs.readFileSync('pss.json', 'utf8'));
+var calls = JSON.parse(fs.readFileSync('calls.json', 'utf8'));
+
+console.log(calls);
 
 io.on('connection', function(socket){
   console.log('a user connected', socket.id);
@@ -24,6 +36,9 @@ io.on('connection', function(socket){
         admin.id = null;
         admin.isOnline = false;
         admin.isAvailable = false;
+     }
+     else {
+        admin.isAvailable = true;
      }
      console.log(admin);
   });
@@ -42,8 +57,11 @@ http.listen(3000, function(){
   console.log('listening on *:3000');
 });
 
+// ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
+// Call functions
+
 function checkPass(input, socket){
-   var arr = obj.users;
+   var arr = passes.users;
    var isValid = false;
    for (var i = 0; i < arr.length; i++) {
       if (input == arr[i].password) {
@@ -71,6 +89,24 @@ function connectCalls(socket, admin){
             var msg = 'you are connected to ' + socket.id;
             io.to(admin.id).emit('conToCust', msg);
             admin.isAvailable = false;
+
+            // adding new call object to DB
+            fs.readFile('calls.json', 'utf-8', function(err, data){
+               if (err) {
+                  throw err
+               }
+               var callsObj = JSON.parse(data);
+               // var call = new call(callsObj.calls.length + 1, admin.id, socket.id, new Date());
+               var call = 'call-' + callsObj.calls.length;
+               callsObj.calls.push(call);
+               console.log('login calls:', callsObj);
+
+               fs.writeFile('calls.json', JSON.stringify(callsObj), 'utf-8', function(err){
+                  if (err) throw error
+                  console.log('Added call to DB!');
+               })
+            });
+
          }
          else {
             console.log("chat busy, please wait a bit...");
